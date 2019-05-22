@@ -75,7 +75,7 @@ public class Mesh extends ArrayList<Polygon> {
 								hasTextureCoordinate = true;
 							}
 						}
-						/*
+
 						MultiPolygon mp = new MultiPolygon(hasTextureCoordinate);
 						for (int i = 0;i<nVerts;i++) {
 							mp.add( verts.get(verticeIndexes[i]-1) );
@@ -84,15 +84,9 @@ public class Mesh extends ArrayList<Polygon> {
 							}
 						}
 
-						for (Polygon p : mp.divideToTriangles()) {
-							if (!p.isTextured()) {
-								System.exit(0);
-							}
-						}
-
 						polys.addAll(mp.divideToTriangles());
-						*/
 
+						/*
 						if (nVerts==3) {
 							if (textureCoords.get(textureIndexes[0]-1)==null) {
 								System.out.println(line);
@@ -163,7 +157,7 @@ public class Mesh extends ArrayList<Polygon> {
 								));
 							}
 						}
-
+						*/
 						break;
 					case "vt":
 						double b[] = new double[3];

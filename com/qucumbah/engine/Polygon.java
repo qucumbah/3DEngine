@@ -31,6 +31,9 @@ public class Polygon {
 	}
 
 	public Polygon getTexture() {
+		if (!isTextured) {
+			return null;
+		}
 		return new Polygon(tFirst,tSecond,tThird);
 	}
 

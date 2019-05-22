@@ -131,14 +131,13 @@ public class Main extends JFrame {
 		try {
 			Mesh model;
 			//model = new Mesh("com/qucumbah/res/Spaceship2.obj");
-			model = new Mesh("com/qucumbah/res/head.obj");
-			model.assignTexture("com/qucumbah/res/head.png");
+			model = new Mesh("com/qucumbah/res/head.obj"); model.assignTexture("com/qucumbah/res/head.png");
 			//model = new Mesh("com/qucumbah/res/Handgun_obj.obj");
 			//model = new Mesh("com/qucumbah/res/Handgun_obj_tri.obj");
 			//model = testCube;
-			//model = new Mesh("com/qucumbah/res/testMesh.obj");
+			//model = new Mesh("com/qucumbah/res/testMesh.obj"); model.assignTexture("com/qucumbah/res/missing.png");
 			w.add(model);
-			w.movePlayer(new Point3D(0,0,20));
+			w.movePlayer(new Point3D(0,0,10));
 			//model.rotate(0,45.0/180*Math.PI,0);
 			model.rotate(0,15.0/180*Math.PI,0);
 			Timer t = new Timer(10,e->model.rotate(.01,-.02,0.01));
@@ -217,11 +216,6 @@ public class Main extends JFrame {
 					Polygon polygon = new Polygon(first, second, third);
 
 					polygon.setTexture(pRaw.getTexture());
-
-		      if (!polygon.isTextured()) {
-		        System.out.println(polygon);
-		        System.exit(0);
-		      }
 
 					//drawTriangle(frame,polygon);
 					//fillTriangle(frame,polygon,illumination);
@@ -412,8 +406,6 @@ public class Main extends JFrame {
 
 			float tone = (float)illumination;
 
-			int color = new Color(0,0,tone).getRGB();
-
 			if (p.getFirst().getY()==p.getSecond().getY() && p.getSecond().getY()==p.getThird().getY())
 				return;
 
@@ -426,10 +418,17 @@ public class Main extends JFrame {
 			points[1] = new Point(p.getSecond());
 			points[2] = new Point(p.getThird());
 
-			textureCoords[0] = p.getTextureFirst();
-			textureCoords[1] = p.getTextureSecond();
-			textureCoords[2] = p.getTextureThird();
-			
+			//TODO: it p isn't textured assign it pink texture
+			if (p.isTextured()) {
+				textureCoords[0] = p.getTextureFirst();
+				textureCoords[1] = p.getTextureSecond();
+				textureCoords[2] = p.getTextureThird();
+			} else {
+				textureCoords[0] = new Point3D(0,0,0);
+				textureCoords[1] = new Point3D(0,0,0);
+				textureCoords[2] = new Point3D(0,0,0);
+			}
+
 			/*
 			System.out.println(Arrays.toString(points));
 			System.out.println(Arrays.toString(textureCoords));
@@ -478,16 +477,25 @@ public class Main extends JFrame {
 					if (P.z>maxZ)
 						maxZ = P.z;
 
-					int textureColor = texture.getRGB(
-						(int)(textureP.getX()*texture.getWidth()),
-						texture.getHeight()-(int)(textureP.getY()*texture.getHeight())
-					);
-					Color c = new Color(textureColor);
+					int textureColor = 0;
+					//subtract 1 because texture coordinates in the image are [0;width-1]
+					int tWidth = texture.getWidth()-1;
+					int tHeight = texture.getHeight()-1;
+					if (p.isTextured()) {
+						textureColor = texture.getRGB(
+							(int)(textureP.getX()*tWidth),
+							tHeight-(int)(textureP.getY()*tHeight)
+						);
+						Color c = new Color(textureColor);
 
-					float[] hsbValues = new float[3];
-					Color.RGBtoHSB(c.getRed(),c.getGreen(),c.getBlue(),hsbValues);
-					hsbValues[2]*=illumination;
-					textureColor = Color.getHSBColor(hsbValues[0],hsbValues[1],hsbValues[2]).getRGB();
+
+						float[] hsbValues = new float[3];
+						Color.RGBtoHSB(c.getRed(),c.getGreen(),c.getBlue(),hsbValues);
+						hsbValues[2]*=illumination;
+						textureColor = Color.getHSBColor(hsbValues[0],hsbValues[1],hsbValues[2]).getRGB();
+					} else {
+						textureColor = new Color(0,0,(float)illumination).getRGB();
+					}
 
 					if (zBuffer[P.x][P.y]<P.z) {
 						img.setRGB(P.x,P.y,textureColor);

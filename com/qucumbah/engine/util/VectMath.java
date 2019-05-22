@@ -65,7 +65,7 @@ public class VectMath {
 	private static double cross(Point3D p1, Point3D p2) {
 		return p1.getX()*p2.getY()-p1.getY()*p2.getX();
 	}
-
+	/*
 	public static Point3D getIntersection(Point3D q, Point3D s, Point3D center, Point3D dir) {
 		q = q.subtract(center);
 		double qsCross = cross(q,s);
@@ -84,14 +84,30 @@ public class VectMath {
 				dir.getZ()
 		);
 	}
+	*/
+	public static Point3D getIntersection(Point3D q, Point3D s, Point3D p, Point3D r) {
+		p = p.subtract(q);
+		double pMinusqCrossr = cross(p,r);
+		double sCrossr = cross(s,r);
 
+		//s parallel to r, p not parallel to r => edge is parallel to out vector
+		if (sCrossr==0 && pMinusqCrossr!=0)
+			return null;
 
+		double u = pMinusqCrossr/sCrossr;
+		//return dir.multiply(qsCross/dirsCross); //careful with z multiplication
+		return new Point3D(
+				q.getX()+s.getX()*u,
+				q.getY()+s.getY()*u,
+				q.getZ()+s.getZ()
+		);
+	}
 
 	public static void main(String[] args) {
-		Point3D q = new Point3D(2,4,0);
-		Point3D s = new Point3D(-3,2,0);
-		Point3D center = new Point3D(0,0,0);
-		Point3D dir = new Point3D(0,1,0);
+		Point3D q = new Point3D(2,3,0);
+		Point3D s = new Point3D(-3,1,0);
+		Point3D center = new Point3D(0,5,0);
+		Point3D dir = new Point3D(1,0,0);
 		System.out.println(getIntersection(q,s,center,dir));
 	}
 }

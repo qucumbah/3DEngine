@@ -41,19 +41,15 @@ public class MultiPolygon extends ArrayList<Point3D> {
 
     for (int i = 1;i<this.size()-1;i++) {
       Polygon polygon = new Polygon(
-          this.get(1),
-          this.get(i),this.
-          get(i+1));
+          this.get(0),
+          this.get(i),
+          this.get(i+1));
       if (isTextured) {
         Polygon texture = new Polygon(
-            this.getTexturePoint(1),
+            this.getTexturePoint(0),
             this.getTexturePoint(i),
             this.getTexturePoint(i+1));
         polygon.setTexture(texture);
-      }
-
-      if (!isTextured) {
-        System.exit(0);
       }
 
       result.add(polygon);
@@ -64,9 +60,10 @@ public class MultiPolygon extends ArrayList<Point3D> {
 
   public static void main(String[] args) {
     MultiPolygon mp = new MultiPolygon(false);
-    mp.add(new Point3D(0,0,0));
-    mp.add(new Point3D(0,1,0));
-    mp.add(new Point3D(1,0,0));
+    mp.add(new Point3D(1,0,1));
+    mp.add(new Point3D(1,1,1));
+    mp.add(new Point3D(0,1,1));
+    mp.add(new Point3D(0,0,1));
 
     for (Polygon p : mp.divideToTriangles()) {
       System.out.println(p);
