@@ -42,7 +42,6 @@ public class Main extends JFrame {
 		Timer t = new Timer(tickTime,e->{
 			repaint();
 			world.movePlayer(keyboard.getMovementDirection());
-			//world.moveForward(keyboard.getMovementDirection());
 			world.rotatePlayer(keyboard.getRotation());
 			elapsedTime+=tickTime;
 		});
@@ -183,8 +182,6 @@ public class Main extends JFrame {
 			Point3D playerLook = world.getPlayerLook();
 			Mat4 view = lookat(playerPosition,playerPosition.add(playerLook),new Point3D(0,1,0));
 
-			//Mat4 z = viewport.mul(projection).mul(view);
-			//Mat4 z = view.mul(projection).mul(viewport);
 			Mat4 z = viewport.mul(projection.mul(view));
 
 			BufferedImage frame = new BufferedImage(width,height,BufferedImage.TYPE_INT_RGB);
@@ -199,25 +196,7 @@ public class Main extends JFrame {
 
 			for (Mesh m:world) {
 				for (int i = 0;i<m.size();i++) {
-				//for (Polygon pRaw:m) {
 					Polygon pRaw = m.get(i);
-
-					//debug
-					/*
-					{
-						Point3D p1 = viewport.mul( new Point3D(-0.5,-0.5,0)     );
-						Point3D p2 = viewport.mul( new Point3D(-0.5+0.1,-0.5,0) );
-						Point3D p3 = viewport.mul( new Point3D(-0.5,-0.5+0.1,0) );
-
-						Polygon testPolygon = new Polygon(p1,p2,p3);
-
-						System.out.println(testPolygon.getFirst());
-						System.out.println(testPolygon.getSecond());
-						System.out.println(testPolygon.getThird());
-
-						drawTriangle(frame,testPolygon);
-					}
-					*/
 
 					Point3D v1 = pRaw.getSecond().subtract(pRaw.getFirst());
 					Point3D v2 = pRaw.getThird().subtract(pRaw.getSecond());
@@ -236,15 +215,26 @@ public class Main extends JFrame {
 					Point3D second = z.mul(pRaw.getSecond());
 					Point3D third = z.mul(pRaw.getThird());
 					Polygon polygon = new Polygon(first, second, third);
+
 					polygon.setTexture(pRaw.getTexture());
+
+		      if (!polygon.isTextured()) {
+		        System.out.println(polygon);
+		        System.exit(0);
+		      }
 
 					//drawTriangle(frame,polygon);
 					//fillTriangle(frame,polygon,illumination);
+
+					fillTriangle(frame,polygon,m.getTexture(),illumination,zBuffer);
+
+					/*
 					if (m.hasTexture()) {
 						fillTriangle(frame,polygon,m.getTextureForPolygon(i),m.getTexture(),illumination,zBuffer);
 					} else {
 						fillTriangle(frame,polygon,illumination,zBuffer);
 					}
+					*/
 				}
 				meshNumber++; //debug
 			}
@@ -412,7 +402,6 @@ public class Main extends JFrame {
 		private void fillTriangle( //shameful & awful & iwannakms
 						BufferedImage img,
 						Polygon p,
-						Polygon texturePoints,
 						BufferedImage texture,
 						double illumination,
 						double[][] zBuffer) {
@@ -440,11 +429,12 @@ public class Main extends JFrame {
 			textureCoords[0] = p.getTextureFirst();
 			textureCoords[1] = p.getTextureSecond();
 			textureCoords[2] = p.getTextureThird();
-
-			//System.out.println(Arrays.toString(points));
-			//System.out.println(Arrays.toString(textureCoords));
-			//System.out.println(p);
-
+			
+			/*
+			System.out.println(Arrays.toString(points));
+			System.out.println(Arrays.toString(textureCoords));
+			System.out.println(p);
+			*/
 			int totalHeight = points[2].y-points[0].y;
 			for (int i = 0;i<totalHeight;i++) {
 				int firstHalfHeight = points[1].y-points[0].y;

@@ -1,5 +1,8 @@
 package com.qucumbah.engine;
 
+import static com.qucumbah.engine.util.VectMath.*;
+import com.qucumbah.engine.util.MultiPolygon;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.FileNotFoundException;
@@ -12,7 +15,6 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import javafx.geometry.Point3D;
 import static java.lang.Math.*;
-import static com.qucumbah.engine.util.VectMath.*;
 
 public class Mesh extends ArrayList<Polygon> {
 	private ArrayList<Polygon> textures = new ArrayList<>();
@@ -73,6 +75,24 @@ public class Mesh extends ArrayList<Polygon> {
 								hasTextureCoordinate = true;
 							}
 						}
+						/*
+						MultiPolygon mp = new MultiPolygon(hasTextureCoordinate);
+						for (int i = 0;i<nVerts;i++) {
+							mp.add( verts.get(verticeIndexes[i]-1) );
+							if (hasTextureCoordinate) {
+								mp.addTexturePoint( textureCoords.get(textureIndexes[i]-1) );
+							}
+						}
+
+						for (Polygon p : mp.divideToTriangles()) {
+							if (!p.isTextured()) {
+								System.exit(0);
+							}
+						}
+
+						polys.addAll(mp.divideToTriangles());
+						*/
+
 						if (nVerts==3) {
 							if (textureCoords.get(textureIndexes[0]-1)==null) {
 								System.out.println(line);
@@ -89,12 +109,13 @@ public class Mesh extends ArrayList<Polygon> {
 							//if this polygon doesn't have texture textureIndex[0] will be -1
 							//because sometimes "f" token looks like f 14//12 23//2 34//23
 							//in this case we replace the middle element with -1
-							if (hasTextureCoordinate && textureIndexes[0]!=-1)
+							if (hasTextureCoordinate && textureIndexes[0]!=-1) {
 								textures.add(new Polygon(
-								textureCoords.get(textureIndexes[0]-1),
-								textureCoords.get(textureIndexes[1]-1),
-								textureCoords.get(textureIndexes[2]-1)
-							));
+									textureCoords.get(textureIndexes[0]-1),
+									textureCoords.get(textureIndexes[1]-1),
+									textureCoords.get(textureIndexes[2]-1)
+								));
+							}
 							//I actually dont know what to do in this scenario, so I let it be black
 							else
 								textures.add(new Polygon(
@@ -102,8 +123,7 @@ public class Mesh extends ArrayList<Polygon> {
 									new Point3D(0,0,0),
 									new Point3D(0,0,0)
 								));
-						}
-						/*else {
+						} else {
 							polys.add(new Polygon(
 								verts.get(verticeIndexes[0]-1),
 								verts.get(verticeIndexes[1]-1),
@@ -142,7 +162,8 @@ public class Mesh extends ArrayList<Polygon> {
 									new Point3D(0,0,0)
 								));
 							}
-						}*/
+						}
+
 						break;
 					case "vt":
 						double b[] = new double[3];

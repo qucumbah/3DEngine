@@ -113,6 +113,10 @@ public class Polygon {
 		return tThird;
 	}
 
+	public boolean isTextured() {
+		return this.isTextured;
+	}
+
 	public String toString() {
 		return String.format("(%f:%f:%f),(%f:%f:%f),(%f:%f:%f)",
 			first.getX(),first.getY(),first.getZ(),

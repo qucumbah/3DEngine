@@ -1,5 +1,7 @@
 package com.qucumbah.engine.util;
 
+import com.qucumbah.engine.Polygon;
+
 import static java.lang.Math.*;
 import javafx.geometry.Point3D;
 
@@ -75,8 +77,15 @@ public class VectMath {
 		//q not parallel to s, s||dir => no intersection
 		if (dirsCross==0 && qsCross!=0)
 			return null;
-		return dir.multiply(qsCross/dirsCross); //careful with z multiplication
+		//return dir.multiply(qsCross/dirsCross); //careful with z multiplication
+		return new Point3D(
+				dir.getX()*qsCross/dirsCross,
+				dir.getY()*qsCross/dirsCross,
+				dir.getZ()
+		);
 	}
+
+
 
 	public static void main(String[] args) {
 		Point3D q = new Point3D(2,4,0);
