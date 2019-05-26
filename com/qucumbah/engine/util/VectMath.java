@@ -1,9 +1,11 @@
 package com.qucumbah.engine.util;
 
 import com.qucumbah.engine.Polygon;
+import com.qucumbah.engine.util.MultiPolygon;
 
 import static java.lang.Math.*;
 import javafx.geometry.Point3D;
+import java.util.ArrayList;
 
 public class VectMath {
 	private VectMath() {
@@ -65,49 +67,116 @@ public class VectMath {
 	private static double cross(Point3D p1, Point3D p2) {
 		return p1.getX()*p2.getY()-p1.getY()*p2.getX();
 	}
+
 	/*
-	public static Point3D getIntersection(Point3D q, Point3D s, Point3D center, Point3D dir) {
-		q = q.subtract(center);
-		double qsCross = cross(q,s);
-		double dirsCross = cross(dir,s);
-
-		System.out.println(qsCross);
-		System.out.println(dirsCross);
-
-		//q not parallel to s, s||dir => no intersection
-		if (dirsCross==0 && qsCross!=0)
-			return null;
-		//return dir.multiply(qsCross/dirsCross); //careful with z multiplication
-		return new Point3D(
-				dir.getX()*qsCross/dirsCross,
-				dir.getY()*qsCross/dirsCross,
-				dir.getZ()
-		);
-	}
+	Uses Sutherland–Hodgman algorithm
+	Each edge is a pair of points defining its start and end
+	To get them we take elements (n,n+1) from bounds list,
+	where 0<=n<=list.length-2
+	Bounds have to be in clockwise order
 	*/
-	public static Point3D getIntersection(Point3D q, Point3D s, Point3D p, Point3D r) {
+	public static ArrayList<Polygon> clip(Polygon p, MultiPolygon bounds) {
+		ArrayList<Point3D> outputList = new ArrayList<>();
+		outputList.add(p.getFirst());
+		outputList.add(p.getSecond());
+		outputList.add(p.getThird());
+
+		for (Point3D boundsPoly:bounds) {
+			System.out.println(boundsPoly);
+		}
+
+		for (int i = 0;i<bounds.size()-1;i++) {
+			Point3D edgeStart = bounds.get(i);
+			Point3D edgeEnd = bounds.get(i+1);
+
+			ArrayList<Point3D> inputList = outputList;
+			outputList = new ArrayList<>();
+
+			for (int j = 0;j<inputList.size();j++) {
+				Point3D currentPoint = inputList.get(j);
+				Point3D prevPoint = inputList.get(
+						(j+inputList.size()-1)%inputList.size());
+				Point3D intersectionPoint = getIntersection(
+						prevPoint,
+						currentPoint,
+						edgeStart,
+						edgeEnd
+				);
+
+				if (isInsideEdge(currentPoint,edgeStart,edgeEnd)) {
+					if (!isInsideEdge(prevPoint,edgeStart,edgeEnd)) {
+						outputList.add(intersectionPoint);
+					}
+					outputList.add(currentPoint);
+				} else if (isInsideEdge(prevPoint,edgeStart,edgeEnd)) {
+					outputList.add(intersectionPoint);
+				}
+			}
+		}
+
+		return new MultiPolygon(outputList).divideToTriangles();
+	}
+
+	/*
+	is inside edge==is to the right of the edge
+	*/
+	public static boolean isInsideEdge(
+			Point3D p, Point3D edgeStart, Point3D edgeEnd) {
+		Point3D vRight = p.subtract(edgeStart);
+		Point3D vLeft = edgeEnd.subtract(edgeStart);
+		return cross(vRight,vLeft)>=0;
+	}
+
+	/*
+
+	*/
+	public static Point3D getIntersection(
+			Point3D q, Point3D s, Point3D p, Point3D r) {
 		p = p.subtract(q);
+
 		double pMinusqCrossr = cross(p,r);
 		double sCrossr = cross(s,r);
 
 		//s parallel to r, p not parallel to r => edge is parallel to out vector
-		if (sCrossr==0 && pMinusqCrossr!=0)
+		if (sCrossr==0) {
 			return null;
+		}
 
 		double u = pMinusqCrossr/sCrossr;
-		//return dir.multiply(qsCross/dirsCross); //careful with z multiplication
-		return new Point3D(
-				q.getX()+s.getX()*u,
-				q.getY()+s.getY()*u,
-				q.getZ()+s.getZ()
-		);
+		return q.add(s.multiply(u));
 	}
 
 	public static void main(String[] args) {
+		/*
 		Point3D q = new Point3D(2,3,0);
 		Point3D s = new Point3D(-3,1,0);
-		Point3D center = new Point3D(0,5,0);
-		Point3D dir = new Point3D(1,0,0);
+		Point3D center = new Point3D(0,0,0);
+		Point3D dir = new Point3D(0,1,0);
+
 		System.out.println(getIntersection(q,s,center,dir));
+		*/
+
+		int width = 800;
+		int height = 600;
+
+		Point3D screenBL = new Point3D(0,0,0);
+		Point3D screenTL = new Point3D(0,height,0);
+		Point3D screenTR = new Point3D(width,height,0);
+		Point3D screenBR = new Point3D(width,0,0);
+
+		MultiPolygon bounds = new MultiPolygon(screenBL,screenTL,screenTR,screenBR);
+
+		Point3D v1 = new Point3D(200,500,0);
+		Point3D v2 = new Point3D(-200,400,0);
+		Point3D v3 = new Point3D(-200,600,0);
+
+		Polygon triangle = new Polygon(v1,v2,v3);
+
+		System.out.println(getIntersection(v2,v1,screenBL,screenTL));
+		/*
+		for (Polygon p:clip(triangle,bounds)) {
+			System.out.println(p);
+		}
+		*/
 	}
 }

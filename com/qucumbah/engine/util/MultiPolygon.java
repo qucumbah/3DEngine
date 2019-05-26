@@ -3,6 +3,8 @@ package com.qucumbah.engine.util;
 import com.qucumbah.engine.Polygon;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import javafx.geometry.Point3D;
 
 public class MultiPolygon extends ArrayList<Point3D> {
@@ -20,6 +22,12 @@ public class MultiPolygon extends ArrayList<Point3D> {
   }
 
   public MultiPolygon(ArrayList<Point3D> verts) {
+    this.addAll(verts);
+    this.isTextured = false;
+  }
+
+  public MultiPolygon(Point3D ...vertsArray) {
+    List<Point3D> verts = Arrays.asList(vertsArray);
     this.addAll(verts);
     this.isTextured = false;
   }
