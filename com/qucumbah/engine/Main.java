@@ -240,10 +240,6 @@ public class Main extends JFrame {
 			g.drawRenderedImage(frame,null);
 		}
 
-		private ArrayList<Polygon> clip(Polygon p) {
-			return new ArrayList<Polygon>();
-		}
-
 		private Mat4 lookat(Point3D eye, Point3D center, Point3D up) {
 			Point3D zVect = eye.subtract(center).normalize();
 			Point3D xVect = up.crossProduct(zVect).normalize();

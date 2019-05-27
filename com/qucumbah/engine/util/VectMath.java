@@ -81,11 +81,12 @@ public class VectMath {
 		outputList.add(p.getSecond());
 		outputList.add(p.getThird());
 
-		for (Point3D boundsPoly:bounds) {
-			System.out.println(boundsPoly);
-		}
-
 		for (int i = 0;i<bounds.size()-1;i++) {
+			System.out.println("---before:");
+			for (Point3D outputPoint : outputList) {
+				System.out.println(outputPoint);
+			}
+			System.out.println("---");
 			Point3D edgeStart = bounds.get(i);
 			Point3D edgeEnd = bounds.get(i+1);
 
@@ -103,7 +104,10 @@ public class VectMath {
 						edgeEnd
 				);
 
+				System.out.println("Checking if "+currentPoint+" is inside edge "+edgeStart+":"+edgeEnd);
+
 				if (isInsideEdge(currentPoint,edgeStart,edgeEnd)) {
+					System.out.println("inside");
 					if (!isInsideEdge(prevPoint,edgeStart,edgeEnd)) {
 						outputList.add(intersectionPoint);
 					}
@@ -112,7 +116,14 @@ public class VectMath {
 					outputList.add(intersectionPoint);
 				}
 			}
+			System.out.println("---after:");
+			for (Point3D outputPoint : outputList) {
+				System.out.println(outputPoint);
+			}
+			System.out.println("---");
 		}
+
+		System.out.println(new MultiPolygon(outputList));
 
 		return new MultiPolygon(outputList).divideToTriangles();
 	}
@@ -128,9 +139,18 @@ public class VectMath {
 	}
 
 	/*
-
+	Arguments: points q and s are starts of our vectors;
+	s and r are vectors pointing in some direction
+	to find intersection:
+	q+u*s = p+t*r, where t and u are constants
+	cross product both sides by r:
+	q^r + u*(s^r) = p^r
+	u*(s^r) = (p-q)^r
+	u = (p-q)^r / s^r
+	where ^ is cross product
+	so the resulting point is q+us
 	*/
-	public static Point3D getIntersection(
+	public static Point3D getIntersectionDirected(
 			Point3D q, Point3D s, Point3D p, Point3D r) {
 		p = p.subtract(q);
 
@@ -146,18 +166,23 @@ public class VectMath {
 		return q.add(s.multiply(u));
 	}
 
+	public static Point3D getIntersection(
+			Point3D q, Point3D s, Point3D p, Point3D r) {
+		return getIntersectionDirected(q,s.subtract(q),p,r.subtract(p));
+	}
+
 	public static void main(String[] args) {
 		/*
-		Point3D q = new Point3D(2,3,0);
-		Point3D s = new Point3D(-3,1,0);
+		Point3D q = new Point3D(2,5,0);
+		Point3D s = new Point3D(-2,4,0);
 		Point3D center = new Point3D(0,0,0);
-		Point3D dir = new Point3D(0,1,0);
+		Point3D dir = new Point3D(0,6,0);
 
 		System.out.println(getIntersection(q,s,center,dir));
 		*/
 
-		int width = 800;
-		int height = 600;
+		int width = 8;
+		int height = 6;
 
 		Point3D screenBL = new Point3D(0,0,0);
 		Point3D screenTL = new Point3D(0,height,0);
@@ -166,17 +191,14 @@ public class VectMath {
 
 		MultiPolygon bounds = new MultiPolygon(screenBL,screenTL,screenTR,screenBR);
 
-		Point3D v1 = new Point3D(200,500,0);
-		Point3D v2 = new Point3D(-200,400,0);
-		Point3D v3 = new Point3D(-200,600,0);
+		Point3D v1 = new Point3D(4,8,0);
+		Point3D v2 = new Point3D(4,2,0);
+		Point3D v3 = new Point3D(-2,2,0);
 
 		Polygon triangle = new Polygon(v1,v2,v3);
 
-		System.out.println(getIntersection(v2,v1,screenBL,screenTL));
-		/*
 		for (Polygon p:clip(triangle,bounds)) {
 			System.out.println(p);
 		}
-		*/
 	}
 }

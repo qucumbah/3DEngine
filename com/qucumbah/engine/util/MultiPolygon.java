@@ -66,6 +66,20 @@ public class MultiPolygon extends ArrayList<Point3D> {
     return result;
   }
 
+  public String toString() {
+    String s = "";
+
+    if (this.size()==0) {
+      return s;
+    }
+
+    for (Point3D p : this) {
+      s = s+p+",";
+    }
+    
+    return s.substring(0,s.length()-1);
+  }
+
   public static void main(String[] args) {
     MultiPolygon mp = new MultiPolygon(false);
     mp.add(new Point3D(1,0,1));
