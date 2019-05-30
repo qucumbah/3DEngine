@@ -222,7 +222,7 @@ public class Main extends JFrame {
 					normal = normal.normalize();
 					Point3D sunDirection = world.getSunDirection().normalize();
 					double illumination = normal.dotProduct(sunDirection);
-
+					
 					Point3D first = z.mul(pRaw.getFirst());
 					Point3D second = z.mul(pRaw.getSecond());
 					Point3D third = z.mul(pRaw.getThird());
@@ -233,13 +233,17 @@ public class Main extends JFrame {
 					//drawTriangle(frame,polygon);
 					//fillTriangle(frame,polygon,illumination);
 
-					//From VectMath class
-					ArrayList<Polygon> clippedPolygons = clip(polygon,screenBounds);
-					if (clippedPolygons==null) {
+					//clip(), clipZ() are from VectMath class
+					MultiPolygon screenClippedPolygons = clip(polygon,screenBounds);
+					if (!screenClippedPolygons.isFullPolygon()) {
+						continue;
+					}
+					MultiPolygon zClippedPolygons = clipZ(screenClippedPolygons,1);
+					if (!zClippedPolygons.isFullPolygon()) {
 						continue;
 					}
 
-					for (Polygon clippedPolygon : clippedPolygons) {
+					for (Polygon clippedPolygon : zClippedPolygons.divideToTriangles()) {
 						fillTriangle(
 								frame,
 								clippedPolygon,

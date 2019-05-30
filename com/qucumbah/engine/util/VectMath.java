@@ -78,7 +78,7 @@ public class VectMath {
 	Clipping of texture is performed separately
 
 	*/
-	public static ArrayList<Polygon> clip(Polygon poly, MultiPolygon bounds) {
+	public static MultiPolygon clip(Polygon poly, MultiPolygon bounds) {
 		ArrayList<Point3D> outputList = new ArrayList<>();
 		outputList.add(poly.getFirst());
 		outputList.add(poly.getSecond());
@@ -143,11 +143,56 @@ public class VectMath {
 			}
 		}
 
-		return new MultiPolygon(outputList,textureOutputList).divideToTriangles();
+		return new MultiPolygon(outputList,textureOutputList);
 	}
 
-	public static ArrayList<Polygon> clipZ(Polygon poly) {
-		return null;
+	public static MultiPolygon clipZ(MultiPolygon poly, double clipZ) {
+		ArrayList<Point3D> inputList = new ArrayList<>();
+		inputList.addAll(poly);
+		ArrayList<Point3D> textureInputList = new ArrayList<>();
+		textureInputList.addAll(poly.getTexture());
+
+		ArrayList<Point3D> outputList = new ArrayList<>();
+		ArrayList<Point3D> textureOutputList = new ArrayList<>();
+
+		for (int j = 0;j<inputList.size();j++) {
+			Point3D currentPoint = inputList.get(j);
+			Point3D prevPoint = inputList.get(
+					(j+inputList.size()-1)%inputList.size());
+
+			Point3D textureCurrentPoint = textureInputList.get(j);
+			Point3D texturePrevPoint = textureInputList.get(
+					(j+textureInputList.size()-1)%textureInputList.size());
+
+			Point3D q = prevPoint;
+			Point3D s = currentPoint.subtract(prevPoint);
+
+			Point3D qTexture = texturePrevPoint;
+			Point3D sTexture = textureCurrentPoint.subtract(texturePrevPoint);
+
+			double intersectionMultiplier = getZIntersectionMultiplier(q,s,clipZ);
+			Point3D intersectionPoint = q.add(s.multiply(intersectionMultiplier));
+			Point3D textureIntersectionPoint =
+					qTexture.add(sTexture.multiply(intersectionMultiplier));
+
+			double currentPointZ = currentPoint.getZ();
+			double prevPointZ = prevPoint.getZ();
+
+			//Same as in clip(), but replaced isInsideEdge() with simpler check
+			if (currentPointZ<clipZ) {
+				if (!(prevPointZ<clipZ)) {
+					outputList.add(intersectionPoint);
+					textureOutputList.add(textureIntersectionPoint);
+				}
+				outputList.add(currentPoint);
+				textureOutputList.add(textureCurrentPoint);
+			} else if (prevPointZ<clipZ) {
+				outputList.add(intersectionPoint);
+				textureOutputList.add(textureIntersectionPoint);
+			}
+		}
+
+		return new MultiPolygon(outputList,textureOutputList);
 	}
 
 	/*
@@ -216,7 +261,7 @@ public class VectMath {
 	Returns NaN if there is no intersection
 	*/
 	public static double getZIntersectionMultiplier(
-			Point3D q, Point3D s, double clipz) {
+			Point3D q, Point3D s, double clipZ) {
 		double qz = q.getZ();
 		double sz = s.getZ();
 
@@ -224,15 +269,16 @@ public class VectMath {
 		If vector is on the edge z clipping plane, we still count this as
 		no intersection, so return should be 0, not NaN
 		*/
-		if (sz==0 && clipz==qz) {
+		if (sz==0 && clipZ==qz) {
 			return 0;
 		}
 
-		return (clipz-qz)/sz;
+		return (clipZ-qz)/sz;
 	}
 
 	public static void main(String[] args) {
 		/*
+		//clip() test
 		Point3D q = new Point3D(2,5,0);
 		Point3D s = new Point3D(-2,4,0);
 		Point3D center = new Point3D(0,0,0);
@@ -242,6 +288,7 @@ public class VectMath {
 		*/
 
 		/*
+		//clip() test with real bounds and texture
 		int width = 8;
 		int height = 6;
 
@@ -271,10 +318,34 @@ public class VectMath {
 		}
 		*/
 
+		/*
+		//getZIntersectionMultiplier() test
 		Point3D v1 = new Point3D(0,4,5);
 		Point3D v2 = new Point3D(0,13,-4);
 		double u = getZIntersectionMultiplier(v1,v2.subtract(v1),-2);
 		System.out.println(u);
 		System.out.println(v1.add(v2.subtract(v1).multiply(u)));
+		*/
+
+		/*
+		//clipZ() test
+		Point3D v1 = new Point3D(0,2,2);
+		Point3D v2 = new Point3D(0,-1,-1);
+		Point3D v3 = new Point3D(0,2,-2);
+		Point3D v4 = new Point3D(0,4,2);
+		Point3D v5 = new Point3D(0,3,3);
+		Point3D t1 = new Point3D(0,2,2);
+		Point3D t2 = new Point3D(0,-1,-1);
+		Point3D t3 = new Point3D(0,2,-2);
+		Point3D t4 = new Point3D(0,4,2);
+		Point3D t5 = new Point3D(0,3,3);
+
+		MultiPolygon triangle = new MultiPolygon(v1,v2,v3,v4,v5);
+		triangle.setTexture(t1,t2,t3,t4,t5);
+
+		for (Polygon p:clipZ(triangle,0)) {
+			System.out.println(p);
+		}
+		*/
 	}
 }

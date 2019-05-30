@@ -32,12 +32,45 @@ public class MultiPolygon extends ArrayList<Point3D> {
     this.isTextured = false;
   }
 
+  public MultiPolygon getTexture() {
+    return new MultiPolygon(texturePoints);
+  }
+
+  public void setTexture(ArrayList<Point3D> texturePoints) {
+    this.isTextured = true;
+    this.texturePoints = new ArrayList<>();
+    this.texturePoints.addAll(texturePoints);
+  }
+  public void setTexture(Point3D ...texturePointsArray) {
+    this.isTextured = true;
+    this.texturePoints = new ArrayList<>();
+    List<Point3D> texturePoints = Arrays.asList(texturePointsArray);
+    this.texturePoints.addAll(texturePoints);
+  }
+  public void setTexture(Polygon texturePolygon) {
+    this.isTextured = true;
+    this.texturePoints = new ArrayList<>();
+    this.texturePoints.add(texturePolygon.getFirst());
+    this.texturePoints.add(texturePolygon.getSecond());
+    this.texturePoints.add(texturePolygon.getThird());
+  }
+
   public void addTexturePoint(Point3D p) {
+    if (!this.isTextured) {
+      this.isTextured = true;
+    }
     texturePoints.add(p);
   }
 
   public Point3D getTexturePoint(int index) {
+    if (!this.isTextured) {
+      return null;
+    }
     return texturePoints.get(index);
+  }
+
+  public void removeTexture() {
+    this.isTextured = false;
   }
 
   public ArrayList<Polygon> divideToTriangles() {
@@ -66,6 +99,10 @@ public class MultiPolygon extends ArrayList<Point3D> {
     return result;
   }
 
+  public boolean isFullPolygon() {
+    return this.size()>=3;
+  }
+
   public String toString() {
     String s = "";
 
@@ -76,7 +113,7 @@ public class MultiPolygon extends ArrayList<Point3D> {
     for (Point3D p : this) {
       s = s+p+",";
     }
-    
+
     return s.substring(0,s.length()-1);
   }
 
