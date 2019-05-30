@@ -74,73 +74,96 @@ public class VectMath {
 	To get them we take elements (n,n+1) from bounds list,
 	where 0<=n<=list.length-2
 	Bounds have to be in clockwise order
+
+	Clipping of texture is performed separately
+
 	*/
-	public static ArrayList<Polygon> clip(Polygon p, MultiPolygon bounds) {
+	public static ArrayList<Polygon> clip(Polygon poly, MultiPolygon bounds) {
 		ArrayList<Point3D> outputList = new ArrayList<>();
-		outputList.add(p.getFirst());
-		outputList.add(p.getSecond());
-		outputList.add(p.getThird());
+		outputList.add(poly.getFirst());
+		outputList.add(poly.getSecond());
+		outputList.add(poly.getThird());
+		ArrayList<Point3D> textureOutputList = new ArrayList<>();
+		textureOutputList.add(poly.getTextureFirst());
+		textureOutputList.add(poly.getTextureSecond());
+		textureOutputList.add(poly.getTextureThird());
 
 		for (int i = 0;i<bounds.size()-1;i++) {
-			System.out.println("---before:");
-			for (Point3D outputPoint : outputList) {
-				System.out.println(outputPoint);
-			}
-			System.out.println("---");
 			Point3D edgeStart = bounds.get(i);
 			Point3D edgeEnd = bounds.get(i+1);
 
 			ArrayList<Point3D> inputList = outputList;
+			ArrayList<Point3D> textureInputList = textureOutputList;
 			outputList = new ArrayList<>();
+			textureOutputList = new ArrayList<>();
 
 			for (int j = 0;j<inputList.size();j++) {
 				Point3D currentPoint = inputList.get(j);
 				Point3D prevPoint = inputList.get(
 						(j+inputList.size()-1)%inputList.size());
+
+				Point3D textureCurrentPoint = textureInputList.get(j);
+				Point3D texturePrevPoint = textureInputList.get(
+						(j+textureInputList.size()-1)%textureInputList.size());
+				/*
+				See sketch 2
+
+				Does the same as
 				Point3D intersectionPoint = getIntersection(
 						prevPoint,
 						currentPoint,
 						edgeStart,
 						edgeEnd
 				);
+				*/
+				Point3D q = prevPoint;
+				Point3D s = currentPoint.subtract(prevPoint);
+				Point3D p = edgeStart;
+				Point3D r = edgeEnd.subtract(edgeStart);
 
-				System.out.println("Checking if "+currentPoint+" is inside edge "+edgeStart+":"+edgeEnd);
+				Point3D qTexture = texturePrevPoint;
+				Point3D sTexture = textureCurrentPoint.subtract(texturePrevPoint);
+
+				double intersectionMultiplier = getIntersectionMultiplier(q,s,p,r);
+				Point3D intersectionPoint = q.add(s.multiply(intersectionMultiplier));
+				Point3D textureIntersectionPoint =
+						qTexture.add(sTexture.multiply(intersectionMultiplier));
 
 				if (isInsideEdge(currentPoint,edgeStart,edgeEnd)) {
-					System.out.println("inside");
 					if (!isInsideEdge(prevPoint,edgeStart,edgeEnd)) {
 						outputList.add(intersectionPoint);
+						textureOutputList.add(textureIntersectionPoint);
 					}
 					outputList.add(currentPoint);
+					textureOutputList.add(textureCurrentPoint);
 				} else if (isInsideEdge(prevPoint,edgeStart,edgeEnd)) {
 					outputList.add(intersectionPoint);
+					textureOutputList.add(textureIntersectionPoint);
 				}
 			}
-			System.out.println("---after:");
-			for (Point3D outputPoint : outputList) {
-				System.out.println(outputPoint);
-			}
-			System.out.println("---");
 		}
 
-		System.out.println(new MultiPolygon(outputList));
+		return new MultiPolygon(outputList,textureOutputList).divideToTriangles();
+	}
 
-		return new MultiPolygon(outputList).divideToTriangles();
+	public static ArrayList<Polygon> clipZ(Polygon poly) {
+		return null;
 	}
 
 	/*
 	is inside edge==is to the right of the edge
 	*/
 	public static boolean isInsideEdge(
-			Point3D p, Point3D edgeStart, Point3D edgeEnd) {
+				Point3D p, Point3D edgeStart, Point3D edgeEnd) {
 		Point3D vRight = p.subtract(edgeStart);
 		Point3D vLeft = edgeEnd.subtract(edgeStart);
 		return cross(vRight,vLeft)>=0;
 	}
 
 	/*
-	Arguments: points q and s are starts of our vectors;
-	s and r are vectors pointing in some direction
+	Arguments: points q and s are starts of vectors that we
+	want to find intersection of
+	s and r are the vectors themselves (or vectors collinear to them);
 	to find intersection:
 	q+u*s = p+t*r, where t and u are constants
 	cross product both sides by r:
@@ -149,9 +172,11 @@ public class VectMath {
 	u = (p-q)^r / s^r
 	where ^ is cross product
 	so the resulting point is q+us
+	see sketches 1-4
+	Returns NaN if there is no intersection
 	*/
-	public static Point3D getIntersectionDirected(
-			Point3D q, Point3D s, Point3D p, Point3D r) {
+	public static double getIntersectionMultiplier(
+				Point3D q, Point3D s, Point3D p, Point3D r) {
 		p = p.subtract(q);
 
 		double pMinusqCrossr = cross(p,r);
@@ -159,16 +184,51 @@ public class VectMath {
 
 		//s parallel to r, p not parallel to r => edge is parallel to out vector
 		if (sCrossr==0) {
-			return null;
+			return Double.NaN;
 		}
 
 		double u = pMinusqCrossr/sCrossr;
+		return u;
+	}
+
+	public static Point3D getIntersectionDirected(
+				Point3D q, Point3D s, Point3D p, Point3D r) {
+		double u = getIntersectionMultiplier(q,s,p,r);
 		return q.add(s.multiply(u));
 	}
 
+	/*
+	does the same as getIntersectionDirected(q,s.subtract(q),p,r.subtract(p))
+	*/
 	public static Point3D getIntersection(
-			Point3D q, Point3D s, Point3D p, Point3D r) {
-		return getIntersectionDirected(q,s.subtract(q),p,r.subtract(p));
+				Point3D q, Point3D s, Point3D p, Point3D r) {
+		//return getIntersectionDirected(q,s.subtract(q),p,r.subtract(p));
+		return q.add(
+			s.subtract(q).
+			multiply(getIntersectionMultiplier(q,s.subtract(q),p,r.subtract(p)))
+		);
+	}
+
+	/*
+	Same arguments as getIntersectionMultiplier:
+	q is the start, s is a vector itself
+	check sketches 5 and 6
+	Returns NaN if there is no intersection
+	*/
+	public static double getZIntersectionMultiplier(
+			Point3D q, Point3D s, double clipz) {
+		double qz = q.getZ();
+		double sz = s.getZ();
+
+		/*
+		If vector is on the edge z clipping plane, we still count this as
+		no intersection, so return should be 0, not NaN
+		*/
+		if (sz==0 && clipz==qz) {
+			return 0;
+		}
+
+		return (clipz-qz)/sz;
 	}
 
 	public static void main(String[] args) {
@@ -181,6 +241,7 @@ public class VectMath {
 		System.out.println(getIntersection(q,s,center,dir));
 		*/
 
+		/*
 		int width = 8;
 		int height = 6;
 
@@ -194,11 +255,26 @@ public class VectMath {
 		Point3D v1 = new Point3D(4,8,0);
 		Point3D v2 = new Point3D(4,2,0);
 		Point3D v3 = new Point3D(-2,2,0);
+		Point3D t1 = new Point3D(.4,.8,0);
+		Point3D t2 = new Point3D(.4,.2,0);
+		Point3D t3 = new Point3D(-.2,.2,0);
 
 		Polygon triangle = new Polygon(v1,v2,v3);
+		triangle.setTexture(t1,t2,t3);
 
 		for (Polygon p:clip(triangle,bounds)) {
 			System.out.println(p);
 		}
+
+		for (Polygon p:clip(triangle,bounds)) {
+			System.out.println(p.getTexture());
+		}
+		*/
+
+		Point3D v1 = new Point3D(0,4,5);
+		Point3D v2 = new Point3D(0,13,-4);
+		double u = getZIntersectionMultiplier(v1,v2.subtract(v1),-2);
+		System.out.println(u);
+		System.out.println(v1.add(v2.subtract(v1).multiply(u)));
 	}
 }

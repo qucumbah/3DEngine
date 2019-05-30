@@ -17,6 +17,7 @@ import javafx.util.Pair;
 import javafx.geometry.Point3D;
 
 import com.qucumbah.engine.util.Mat4;
+import com.qucumbah.engine.util.MultiPolygon;
 import static com.qucumbah.engine.util.VectMath.*;
 
 public class Main extends JFrame {
@@ -193,6 +194,18 @@ public class Main extends JFrame {
 				for (int j = 0;j<height;j++)
 					zBuffer[i][j] = Double.NEGATIVE_INFINITY;
 
+			Point3D screenBL = new Point3D(0,0,0);
+			Point3D screenTL = new Point3D(0,height,0);
+			Point3D screenTR = new Point3D(width,height,0);
+			Point3D screenBR = new Point3D(width,0,0);
+
+			MultiPolygon screenBounds = new MultiPolygon(
+				screenBL,
+				screenTL,
+				screenTR,
+				screenBR
+			);
+
 			for (Mesh m:world) {
 				for (int i = 0;i<m.size();i++) {
 					Polygon pRaw = m.get(i);
@@ -220,7 +233,21 @@ public class Main extends JFrame {
 					//drawTriangle(frame,polygon);
 					//fillTriangle(frame,polygon,illumination);
 
-					fillTriangle(frame,polygon,m.getTexture(),illumination,zBuffer);
+					//From VectMath class
+					ArrayList<Polygon> clippedPolygons = clip(polygon,screenBounds);
+					if (clippedPolygons==null) {
+						continue;
+					}
+
+					for (Polygon clippedPolygon : clippedPolygons) {
+						fillTriangle(
+								frame,
+								clippedPolygon,
+								m.getTexture(),
+								illumination,
+								zBuffer
+						);
+					}
 
 					/*
 					if (m.hasTexture()) {
