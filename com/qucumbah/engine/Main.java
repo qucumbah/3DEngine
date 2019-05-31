@@ -229,10 +229,10 @@ public class Main extends JFrame {
 					on we'll work with it and name it relativePolygon
 					2. Clip against Z plane to avoid artefacts appearing when
 					some object is behind the camera; name the result zClippedPolygon
-					3. Translate the result to screen space; result: screenSpacePolygon
+					3. Project the result to screen space; result: screenSpacePolygon
 					4. Clip against screen boundaries to avoid rendering what we cant see;
 					the result is
-					5. Assign texture and render
+					5. Render
 					*/
 
 					Polygon pRaw = m.get(i);
@@ -250,50 +250,34 @@ public class Main extends JFrame {
 					Point3D sunDirection = world.getSunDirection().normalize();
 					double illumination = normal.dotProduct(sunDirection);
 
-					/*
-					Point3D first = z.mul(pRaw.getFirst());
-					Point3D second = z.mul(pRaw.getSecond());
-					Point3D third = z.mul(pRaw.getThird());
-					MultiPolygon polygon = new MultiPolygon(first, second, third);
-
-					polygon.setTexture(pRaw.getTexture());
-					*/
-
-
-					//Transform to relative coords
-
+					//1. Transform to relative coords
 					Point3D first = view.mul(pRaw.getFirst());
 					Point3D second = view.mul(pRaw.getSecond());
 					Point3D third = view.mul(pRaw.getThird());
 					MultiPolygon relativePolygon = new MultiPolygon(first, second, third);
 
 					relativePolygon.setTexture(pRaw.getTexture());
-					/*
+
+					//2. Clip z
 					MultiPolygon zClippedPolygon = clipZ(relativePolygon,0);
 					if (!zClippedPolygon.isFullPolygon()) {
 						continue;
 					}
 
+					//3. Project to screen space
 					MultiPolygon screenSpacePolygon = new MultiPolygon();
-					for (int j = 0;j<screenSpacePolygon.size();j++) {
+					for (int j = 0;j<zClippedPolygon.size();j++) {
 						screenSpacePolygon.add(
 								projectToScreenSpace.mul(zClippedPolygon.get(j)));
 						screenSpacePolygon.addTexturePoint(
-								projectToScreenSpace.mul(zClippedPolygon.getTexturePoint(j)));
-					}
-					*/
-
-					MultiPolygon screenSpacePolygon = new MultiPolygon();
-					for (int j = 0;j<relativePolygon.size();j++) {
-						screenSpacePolygon.add(
-								projectToScreenSpace.mul(relativePolygon.get(j)));
-						screenSpacePolygon.addTexturePoint(
-								projectToScreenSpace.mul(relativePolygon.getTexturePoint(j)));
+								zClippedPolygon.getTexturePoint(j));
 					}
 
-					//MultiPolygon clippedScreenSpacePolygon = clip(
-					//		screenSpacePolygon,screenBounds);
+					//4. Clip against screen
+					MultiPolygon clippedScreenSpacePolygon = clip(
+							screenSpacePolygon,screenBounds);
 
+					//5. Render
 					for (Polygon polygon : screenSpacePolygon.divideToTriangles()) {
 						fillTriangle(
 								frame,
@@ -303,28 +287,6 @@ public class Main extends JFrame {
 								zBuffer
 						);
 					}
-
-					/*
-					//clip(), clipZ() are from VectMath class
-					MultiPolygon screenClippedPolygons = clip(polygon,screenBounds);
-					if (!screenClippedPolygons.isFullPolygon()) {
-						continue;
-					}
-					MultiPolygon zClippedPolygons = clipZ(screenClippedPolygons,1);
-					if (!zClippedPolygons.isFullPolygon()) {
-						continue;
-					}
-
-					for (Polygon clippedPolygon : zClippedPolygons.divideToTriangles()) {
-						fillTriangle(
-								frame,
-								clippedPolygon,
-								m.getTexture(),
-								illumination,
-								zBuffer
-						);
-					}
-					*/
 				}
 				meshNumber++; //debug
 			}
