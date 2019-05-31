@@ -78,7 +78,8 @@ public class VectMath {
 	Clipping of texture is performed separately
 
 	*/
-	public static MultiPolygon clip(Polygon poly, MultiPolygon bounds) {
+	public static MultiPolygon clip(MultiPolygon poly, MultiPolygon bounds) {
+		/*
 		ArrayList<Point3D> outputList = new ArrayList<>();
 		outputList.add(poly.getFirst());
 		outputList.add(poly.getSecond());
@@ -87,6 +88,9 @@ public class VectMath {
 		textureOutputList.add(poly.getTextureFirst());
 		textureOutputList.add(poly.getTextureSecond());
 		textureOutputList.add(poly.getTextureThird());
+		*/
+		ArrayList<Point3D> outputList = poly;
+		ArrayList<Point3D> textureOutputList = poly.getTexture();
 
 		for (int i = 0;i<bounds.size()-1;i++) {
 			Point3D edgeStart = bounds.get(i);
