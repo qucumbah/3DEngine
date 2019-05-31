@@ -17,6 +17,7 @@ import javafx.util.Pair;
 import javafx.geometry.Point3D;
 
 import com.qucumbah.engine.util.Mat4;
+import com.qucumbah.engine.util.MultiPolygon;
 import static com.qucumbah.engine.util.VectMath.*;
 
 public class Main extends JFrame {
@@ -42,7 +43,6 @@ public class Main extends JFrame {
 		Timer t = new Timer(tickTime,e->{
 			repaint();
 			world.movePlayer(keyboard.getMovementDirection());
-			//world.moveForward(keyboard.getMovementDirection());
 			world.rotatePlayer(keyboard.getRotation());
 			elapsedTime+=tickTime;
 		});
@@ -132,14 +132,13 @@ public class Main extends JFrame {
 		try {
 			Mesh model;
 			//model = new Mesh("com/qucumbah/res/Spaceship2.obj");
-			model = new Mesh("com/qucumbah/res/head.obj");
-			model.assignTexture("com/qucumbah/res/head.png");
+			model = new Mesh("com/qucumbah/res/head.obj"); model.assignTexture("com/qucumbah/res/head.png");
 			//model = new Mesh("com/qucumbah/res/Handgun_obj.obj");
 			//model = new Mesh("com/qucumbah/res/Handgun_obj_tri.obj");
 			//model = testCube;
-			//model = new Mesh("com/qucumbah/res/testMesh.obj");
+			//model = new Mesh("com/qucumbah/res/testMesh.obj"); model.assignTexture("com/qucumbah/res/missing.png");
 			w.add(model);
-			w.movePlayer(new Point3D(0,0,20));
+			w.movePlayer(new Point3D(0,0,10));
 			//model.rotate(0,45.0/180*Math.PI,0);
 			model.rotate(0,15.0/180*Math.PI,0);
 			Timer t = new Timer(10,e->model.rotate(.01,-.02,0.01));
@@ -183,8 +182,17 @@ public class Main extends JFrame {
 			Point3D playerLook = world.getPlayerLook();
 			Mat4 view = lookat(playerPosition,playerPosition.add(playerLook),new Point3D(0,1,0));
 
-			//Mat4 z = viewport.mul(projection).mul(view);
-			//Mat4 z = view.mul(projection).mul(viewport);
+			/*
+			view: translates points from world space to new basis
+			defined by camera position
+			projection: projects from 3D space to 2D screen space and z-buffer
+			screen coordinates are:
+			-1<=x,y,z<=1;
+			viewport: translates projection [-1;1] cube to screen coordinates:
+			0<=x<=width; 0<=y<=height; z stays the same
+			in this transform we also flip y coordinate horizontally to have
+			the center of screen space at the top left side of the screen
+			*/
 			Mat4 z = viewport.mul(projection.mul(view));
 
 			BufferedImage frame = new BufferedImage(width,height,BufferedImage.TYPE_INT_RGB);
@@ -197,27 +205,21 @@ public class Main extends JFrame {
 				for (int j = 0;j<height;j++)
 					zBuffer[i][j] = Double.NEGATIVE_INFINITY;
 
+			Point3D screenBL = new Point3D(0,0,0);
+			Point3D screenTL = new Point3D(0,height,0);
+			Point3D screenTR = new Point3D(width,height,0);
+			Point3D screenBR = new Point3D(width,0,0);
+
+			MultiPolygon screenBounds = new MultiPolygon(
+				screenBL,
+				screenTL,
+				screenTR,
+				screenBR
+			);
+
 			for (Mesh m:world) {
 				for (int i = 0;i<m.size();i++) {
-				//for (Polygon pRaw:m) {
 					Polygon pRaw = m.get(i);
-
-					//debug
-					/*
-					{
-						Point3D p1 = viewport.mul( new Point3D(-0.5,-0.5,0)     );
-						Point3D p2 = viewport.mul( new Point3D(-0.5+0.1,-0.5,0) );
-						Point3D p3 = viewport.mul( new Point3D(-0.5,-0.5+0.1,0) );
-
-						Polygon testPolygon = new Polygon(p1,p2,p3);
-
-						System.out.println(testPolygon.getFirst());
-						System.out.println(testPolygon.getSecond());
-						System.out.println(testPolygon.getThird());
-
-						drawTriangle(frame,testPolygon);
-					}
-					*/
 
 					Point3D v1 = pRaw.getSecond().subtract(pRaw.getFirst());
 					Point3D v2 = pRaw.getThird().subtract(pRaw.getSecond());
@@ -236,15 +238,39 @@ public class Main extends JFrame {
 					Point3D second = z.mul(pRaw.getSecond());
 					Point3D third = z.mul(pRaw.getThird());
 					Polygon polygon = new Polygon(first, second, third);
+
 					polygon.setTexture(pRaw.getTexture());
 
 					//drawTriangle(frame,polygon);
 					//fillTriangle(frame,polygon,illumination);
+
+					//clip(), clipZ() are from VectMath class
+					MultiPolygon screenClippedPolygons = clip(polygon,screenBounds);
+					if (!screenClippedPolygons.isFullPolygon()) {
+						continue;
+					}
+					MultiPolygon zClippedPolygons = clipZ(screenClippedPolygons,1);
+					if (!zClippedPolygons.isFullPolygon()) {
+						continue;
+					}
+
+					for (Polygon clippedPolygon : zClippedPolygons.divideToTriangles()) {
+						fillTriangle(
+								frame,
+								clippedPolygon,
+								m.getTexture(),
+								illumination,
+								zBuffer
+						);
+					}
+
+					/*
 					if (m.hasTexture()) {
 						fillTriangle(frame,polygon,m.getTextureForPolygon(i),m.getTexture(),illumination,zBuffer);
 					} else {
 						fillTriangle(frame,polygon,illumination,zBuffer);
 					}
+					*/
 				}
 				meshNumber++; //debug
 			}
@@ -254,10 +280,6 @@ public class Main extends JFrame {
 			frame.setRGB(width/2,height/2,new Color(255,0,0).getRGB());
 
 			g.drawRenderedImage(frame,null);
-		}
-
-		private ArrayList<Polygon> clip(Polygon p) {
-			return new ArrayList<Polygon>();
 		}
 
 		private Mat4 lookat(Point3D eye, Point3D center, Point3D up) {
@@ -412,7 +434,6 @@ public class Main extends JFrame {
 		private void fillTriangle( //shameful & awful & iwannakms
 						BufferedImage img,
 						Polygon p,
-						Polygon texturePoints,
 						BufferedImage texture,
 						double illumination,
 						double[][] zBuffer) {
@@ -422,8 +443,6 @@ public class Main extends JFrame {
 				illumination = 1;
 
 			float tone = (float)illumination;
-
-			int color = new Color(0,0,tone).getRGB();
 
 			if (p.getFirst().getY()==p.getSecond().getY() && p.getSecond().getY()==p.getThird().getY())
 				return;
@@ -437,14 +456,22 @@ public class Main extends JFrame {
 			points[1] = new Point(p.getSecond());
 			points[2] = new Point(p.getThird());
 
-			textureCoords[0] = p.getTextureFirst();
-			textureCoords[1] = p.getTextureSecond();
-			textureCoords[2] = p.getTextureThird();
+			//TODO: it p isn't textured assign it pink texture
+			if (p.isTextured()) {
+				textureCoords[0] = p.getTextureFirst();
+				textureCoords[1] = p.getTextureSecond();
+				textureCoords[2] = p.getTextureThird();
+			} else {
+				textureCoords[0] = new Point3D(0,0,0);
+				textureCoords[1] = new Point3D(0,0,0);
+				textureCoords[2] = new Point3D(0,0,0);
+			}
 
-			//System.out.println(Arrays.toString(points));
-			//System.out.println(Arrays.toString(textureCoords));
-			//System.out.println(p);
-
+			/*
+			System.out.println(Arrays.toString(points));
+			System.out.println(Arrays.toString(textureCoords));
+			System.out.println(p);
+			*/
 			int totalHeight = points[2].y-points[0].y;
 			for (int i = 0;i<totalHeight;i++) {
 				int firstHalfHeight = points[1].y-points[0].y;
@@ -488,16 +515,25 @@ public class Main extends JFrame {
 					if (P.z>maxZ)
 						maxZ = P.z;
 
-					int textureColor = texture.getRGB(
-						(int)(textureP.getX()*texture.getWidth()),
-						texture.getHeight()-(int)(textureP.getY()*texture.getHeight())
-					);
-					Color c = new Color(textureColor);
+					int textureColor = 0;
+					//subtract 1 because texture coordinates in the image are [0;width-1]
+					int tWidth = texture.getWidth()-1;
+					int tHeight = texture.getHeight()-1;
+					if (p.isTextured()) {
+						textureColor = texture.getRGB(
+							(int)(textureP.getX()*tWidth),
+							tHeight-(int)(textureP.getY()*tHeight)
+						);
+						Color c = new Color(textureColor);
 
-					float[] hsbValues = new float[3];
-					Color.RGBtoHSB(c.getRed(),c.getGreen(),c.getBlue(),hsbValues);
-					hsbValues[2]*=illumination;
-					textureColor = Color.getHSBColor(hsbValues[0],hsbValues[1],hsbValues[2]).getRGB();
+
+						float[] hsbValues = new float[3];
+						Color.RGBtoHSB(c.getRed(),c.getGreen(),c.getBlue(),hsbValues);
+						hsbValues[2]*=illumination;
+						textureColor = Color.getHSBColor(hsbValues[0],hsbValues[1],hsbValues[2]).getRGB();
+					} else {
+						textureColor = new Color(0,0,(float)illumination).getRGB();
+					}
 
 					if (zBuffer[P.x][P.y]<P.z) {
 						img.setRGB(P.x,P.y,textureColor);

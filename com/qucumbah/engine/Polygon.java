@@ -30,25 +30,6 @@ public class Polygon {
 		isTextured = true;
 	}
 
-	public Polygon getTexture() {
-		return new Polygon(tFirst,tSecond,tThird);
-	}
-
-	public void setTexture(Polygon texture) {
-		if (texture==null) {
-			isTextured = false;
-			return;
-		}
-		setTexture(texture.getFirst(),texture.getSecond(),texture.getThird());
-		isTextured = true;
-	}
-
-	public void setTexture(Point3D tFirst, Point3D tSecond, Point3D tThird) {
-		this.tFirst = tFirst;
-		this.tSecond = tSecond;
-		this.tThird = tThird;
-	}
-
 	public void sortByY() {
 		Point3D temp;
 		if (first.getY()>second.getY()) {
@@ -97,6 +78,10 @@ public class Polygon {
 		this.third = p;
 	}
 
+	public boolean isTextured() {
+		return this.isTextured;
+	}
+
 	public Point3D getTextureFirst() {
 		if (!isTextured)
 			return null;
@@ -111,6 +96,28 @@ public class Polygon {
 		if (!isTextured)
 			return null;
 		return tThird;
+	}
+
+	public Polygon getTexture() {
+		if (!isTextured) {
+			return null;
+		}
+		return new Polygon(tFirst,tSecond,tThird);
+	}
+
+	public void setTexture(Polygon texture) {
+		if (texture==null) {
+			isTextured = false;
+			return;
+		}
+		setTexture(texture.getFirst(),texture.getSecond(),texture.getThird());
+	}
+
+	public void setTexture(Point3D tFirst, Point3D tSecond, Point3D tThird) {
+		this.tFirst = tFirst;
+		this.tSecond = tSecond;
+		this.tThird = tThird;
+		isTextured = true;
 	}
 
 	public String toString() {
