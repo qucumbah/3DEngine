@@ -182,6 +182,17 @@ public class Main extends JFrame {
 			Point3D playerLook = world.getPlayerLook();
 			Mat4 view = lookat(playerPosition,playerPosition.add(playerLook),new Point3D(0,1,0));
 
+			/*
+			view: translates points from world space to new basis
+			defined by camera position
+			projection: projects from 3D space to 2D screen space and z-buffer
+			screen coordinates are:
+			-1<=x,y,z<=1;
+			viewport: translates projection [-1;1] cube to screen coordinates:
+			0<=x<=width; 0<=y<=height; z stays the same
+			in this transform we also flip y coordinate horizontally to have
+			the center of screen space at the top left side of the screen
+			*/
 			Mat4 z = viewport.mul(projection.mul(view));
 
 			BufferedImage frame = new BufferedImage(width,height,BufferedImage.TYPE_INT_RGB);
@@ -222,7 +233,7 @@ public class Main extends JFrame {
 					normal = normal.normalize();
 					Point3D sunDirection = world.getSunDirection().normalize();
 					double illumination = normal.dotProduct(sunDirection);
-					
+
 					Point3D first = z.mul(pRaw.getFirst());
 					Point3D second = z.mul(pRaw.getSecond());
 					Point3D third = z.mul(pRaw.getThird());
